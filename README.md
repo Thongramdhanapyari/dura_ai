@@ -50,3 +50,4 @@ Wake Word: "Dura"
 Example: "Dura, how does a linked list work?"
 
 Exit: Say "Goodbye Dura" or "Stop" to shut down.
+
