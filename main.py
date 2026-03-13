@@ -8,9 +8,10 @@ import psutil
 import requests
 import feedparser
 
+engine=pyttsx3.init()
+
 def speak(text):
     print(f"Dura:{text}")
-    engine=pyttsx3.init()
     engine.stop()
     engine.say(text)
     engine.runAndWait()
@@ -96,7 +97,7 @@ if __name__=="__main__":
                 speak("Shutting down. Goodbye!")
                 break
             if "dura" in word.lower():
-                user_input = word.replace("dura", "").strip()
+                user_input = word.replace("hey dura", "").strip()
                 if not user_input:
                     speak("yes?")
                     
@@ -107,11 +108,11 @@ if __name__=="__main__":
                 elif "system status" in user_input or "performance" in user_input:
                     speak(get_system_stats())
                     
-                elif "news" in word or "headlines" in word:
+                elif "news" in user_input or "headlines" in user_input:
                     headlines = get_news()
                     speak(headlines)
                     
-                elif "weather" in word:
+                elif "weather" in user_input:
                     report = get_weather()
                     speak(report)
                     
@@ -123,7 +124,5 @@ if __name__=="__main__":
         except Exception as e:
             print(f"Notice: {e}")
             continue
-        if reply:
-            speak(reply)
             
             
