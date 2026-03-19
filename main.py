@@ -1,3 +1,4 @@
+from datetime import datetime
 import pyttsx3
 import speech_recognition as sr
 import ollama
@@ -8,14 +9,31 @@ import psutil
 import requests
 import feedparser
 
-engine=pyttsx3.init()
 
 def speak(text):
     print(f"Dura:{text}")
-    engine.stop()
+    engine=pyttsx3.init('')
     engine.say(text)
     engine.runAndWait()
-    time.sleep(0.2)
+    time.sleep(0.5)
+    
+    
+def open_browsers(query):
+    sites={
+        "google":"https://www.google.com",
+        "github":"https://github.com",
+        "facebook":"https://www.facebook.com",
+        "Instagram":"https://instagram.com",
+        "LinkedIn": "https://linkedin.com",
+        "youtube": "https://youtube.com"
+    }
+    for site in sites:
+        if site in query:
+            webbrowser.open(sites[site])
+            return f"opening {site}"
+    search_url = f"https://www.google.com/search?q={query}"
+    webbrowser.open(search_url)
+    return f"I'm not sure which site you meant, so I searched Google for {query}."
     
 # wikipedia files
 def get_wikipedia(query):
@@ -29,7 +47,17 @@ def get_wikipedia(query):
 def get_system_stats():
     cpu = psutil.cpu_percent()
     ram = psutil.virtual_memory().percent
-    return f"CPU is at {cpu} percent and memory usage is at {ram} percent."
+    battery = psutil.sensors_battery()
+    
+    stats= f"CPU is at {cpu} percent and memory usage is at {ram} percent."
+    if battery:
+        percent=battery.percent
+        plugged="is plugged in " if battery.power_plugged else "is running on battery"
+        stats +=f"Also battery is at {percent} percent and {plugged}"
+    else:
+        stats +="I couldn't detect a battery on this device"
+        
+    return stats
     
 #weather
 def get_weather():
@@ -63,7 +91,7 @@ def agent_llama(user_input):
         response = ollama.chat(
             model='llama3.2:1b', 
             messages=[
-                {'role': 'system', 'content': 'You are Dura a man , reponse to me as a friend whenever you are called'},
+                {'role': 'system', 'content': 'You are Dura, a man , reponse to me as a friend whenever you are called and speak in english'},
                 {'role': 'user', 'content': user_input},
                 ],
                 keep_alive="30m"
@@ -81,6 +109,7 @@ if __name__=="__main__":
     speak("initializing dura....")
     r=sr.Recognizer()
     r.pause_threshold = 0.6 # stops listening quickly after seaking is finish
+    r.energy_threshold = 500
     while True:
         reply=""
         print("recognizing...")
@@ -97,10 +126,16 @@ if __name__=="__main__":
                 speak("Shutting down. Goodbye!")
                 break
             if "dura" in word.lower():
-                user_input = word.replace("hey dura", "").strip()
+                user_input = word.replace("hey dura", "").replace("dura","").strip()
                 if not user_input:
                     speak("yes?")
-                    
+                    with sr.Microphone() as source:
+                        audio = r.listen(source, phrase_time_limit=5)
+                        user_input = r.recognize_google(audio, language='en-in').lower()
+                        print(f"Follow-up: {user_input}")
+                if "stop" in user_input:
+                    speak("Going offline.")
+                    break
                 elif "who is" in user_input or "what is" in user_input:
                     topic = user_input.replace("who is", "").replace("what is", "").strip()
                     speak(get_wikipedia(topic))
@@ -115,7 +150,16 @@ if __name__=="__main__":
                 elif "weather" in user_input:
                     report = get_weather()
                     speak(report)
-                    
+                elif "time" in user_input:
+                    now = datetime.now().strftime("%I:%M %p")#strftime format time into readable string( I : 12hr, M : min, p : AM/PM {if H then 24  hr})
+                    speak(f"The time is {now}")
+                elif "open" in user_input or "search" in user_input:
+                    target =user_input.replace("open","").replace("search","").strip()
+                    if target:
+                        speak(open_browsers(target))
+                    else:
+                        speak("what would you like to open?")
+                                    
                 else:
                     reply=agent_llama(user_input)
                     speak(reply)
